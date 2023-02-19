@@ -25,5 +25,3 @@ flask run
 ```
 
 ## Screenshots
-
-![homepage](https://user-images.githubusercontent.com/68649083/201484677-e4529363-9cf6-4b05-b4ab-5689cfe92652.png)
