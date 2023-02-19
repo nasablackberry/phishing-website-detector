@@ -1,7 +1,9 @@
+from features import FeatureExtraction
 from flask import send_from_directory
 from html2image import Html2Image
 from urllib.parse import urlparse
 import pandas as pd
+import validators
 import pickle
 import re
 import os
@@ -28,6 +30,38 @@ def format_url(url):
 def capture_screenshot(target_url, filename='screenshot.png', size=(1920, 1080)):
     h2i.screenshot(url=target_url, save_as=filename, size=size)
     return send_from_directory(screenshot_dir, path=filename)
+
+
+def get_phishing_result(target_url):
+    target_url = format_url(target_url)
+    if not (target_url and validators.url(target_url)):
+        return dict(status=False, message="You have provided an invalid target url, Please try again after updating the url.")
+
+    try:
+        update_stats('checked')
+        target = urlparse(target_url)
+
+        features_obj = FeatureExtraction(target_url)
+        x = pd.DataFrame.from_dict(features_obj.getFeaturesDict(), orient='index').T
+
+        pred = model.predict(x)[0]  # 1 is phished & 0 is not
+
+        pred_prob = model.predict_proba(x)[0]
+        safe_prob = pred_prob[0]
+        unsafe_prob = pred_prob[1]
+
+        if pred == 1:
+            update_stats('phished')
+
+        return dict(
+            status=True,
+            domain=target.netloc,
+            target=target_url,
+            safe_percentage=safe_prob*100,
+            unsafe_percentage=unsafe_prob*100
+        )
+    except Exception as e:
+        return dict(status=False, message=str(e))
 
 
 def get_stats(key=None):
